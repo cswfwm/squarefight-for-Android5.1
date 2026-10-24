@@ -23,3 +23,15 @@ allprojects {
   apply plugin: 'eclipse'
   apply plugin: 'idea'
 }
+
+subprojects { subproject ->
+  if (subproject.name == 'game0003-core' || subproject.name == 'game0003-server') {
+    apply plugin: 'java'
+    apply plugin: 'java-library'
+    sourceCompatibility = 17
+    compileJava {
+      options.encoding = 'UTF-8'
+      options.incremental = true
+    }
+  }
+}
