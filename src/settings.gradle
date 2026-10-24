@@ -1,0 +1,2 @@
+// 精简构建：仅打包几何决斗(game0003) 安卓版本，剔除 monorepo 其它模块
+include 'game0003-android', 'game0003-core', 'game0003-server'

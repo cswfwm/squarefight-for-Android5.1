@@ -1,0 +1,22 @@
+buildscript {
+  repositories {
+    mavenCentral()
+    google()
+    maven { url 'https://jitpack.io' }
+    maven { url 'https://s01.oss.sonatype.org' }
+    gradlePluginPortal()
+  }
+  dependencies {
+    classpath "com.android.tools.build:gradle:8.2.0"
+  }
+}
+
+allprojects {
+  repositories {
+    google()
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+    maven { url 'https://s01.oss.sonatype.org' }
+    maven { url 'https://jogamp.org/deployment/maven/' }
+  }
+}
