@@ -20,4 +20,6 @@ allprojects {
     maven { url 'https://jogamp.org/deployment/maven/' }
   }
   ext.appName = 'game'
+  apply plugin: 'eclipse'
+  apply plugin: 'idea'
 }
