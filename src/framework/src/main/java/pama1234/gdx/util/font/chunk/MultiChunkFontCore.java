@@ -1,6 +1,6 @@
 package pama1234.gdx.util.font.chunk;
 
-import static space.earlygrey.shapedrawer.ShapeDrawer.createBlankTextureRegion;
+import static pama1234.gdx.util.BlankTexture.createBlankTextureRegion;
 
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;

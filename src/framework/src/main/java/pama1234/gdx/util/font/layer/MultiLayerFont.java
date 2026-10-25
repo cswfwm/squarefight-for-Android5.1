@@ -1,6 +1,6 @@
 package pama1234.gdx.util.font.layer;
 
-import static space.earlygrey.shapedrawer.ShapeDrawer.createBlankTextureRegion;
+import static pama1234.gdx.util.BlankTexture.createBlankTextureRegion;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;

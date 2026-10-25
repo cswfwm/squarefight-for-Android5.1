@@ -185,7 +185,7 @@ public abstract class UtilScreenRenderShape extends UtilScreenRenderImage{
     }
     if(stroke) {
       shapeDrawer.setColor(strokeColor);
-      shapeDrawer.polygon(array,0,size*2);
+      shapeDrawer.polygon(array);
     }
   }
   public void quad(float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4) {
