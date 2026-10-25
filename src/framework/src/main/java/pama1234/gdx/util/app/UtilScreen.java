@@ -1,0 +1,405 @@
+package pama1234.gdx.util.app;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.IntArray;
+import com.badlogic.gdx.utils.Scaling;
+import com.badlogic.gdx.utils.viewport.ScalingViewport;
+
+import hhs.gdx.hslib.tools.LoopThread;
+import pama1234.gdx.game.ui.element.TextField;
+import pama1234.gdx.util.SharedResources;
+import pama1234.gdx.util.cam.CameraController;
+import pama1234.gdx.util.font.layer.MultiLayerFont;
+import pama1234.gdx.util.info.MouseInfo;
+import pama1234.gdx.util.info.TouchInfo;
+import pama1234.gdx.util.input.UtilInputProcesser;
+import pama1234.gdx.util.listener.EntityListener;
+import pama1234.gdx.util.listener.EntityNeoListener;
+import pama1234.gdx.util.p3d.SpriteBatch3D;
+import pama1234.gdx.util.wrapper.*;
+import pama1234.util.wrapper.Center;
+import pama1234.util.wrapper.ServerEntityCenter;
+import space.earlygrey.shapedrawer.ShapeDrawer;
+
+/**
+ * 此中间类主要放渲染相关的东东
+ * 
+ * @see UtilScreen2D
+ * @see UtilScreen3D
+ */
+public abstract class UtilScreen extends UtilScreenRenderShape{
+
+  public void createRenderUtil() {
+    textFont(SharedResources.instance.font);
+    MultiLayerFont font1=(MultiLayerFont)font;
+    font1.camScale=()->cam.scale()*(u/30);
+    textColor=new Color(0,0,0,1);
+    font.color(textColor);
+    fillColor=new Color(1,1,1,1);
+    strokeColor=new Color(0,0,0,1);
+    pFill=SharedResources.instance.pFill;
+    pFill.setColor(fillColor);
+    shapeDrawer=shapeDrawerDefault=SharedResources.instance.shapeDrawer;
+  }
+
+  public void createInputUtil() {
+    vectorCache=new Vector3();
+    mouse=new MouseInfo(this);
+    for(int i=0;i<touches.length;i++) touches[i]=new TouchInfo(this);
+    keyPressedArray=new IntArray(false,12);
+    backgroundColor=new Color(1,1,1,0);
+  }
+
+  //---------------------------------------------------------------------------
+
+  /**
+   * 初始化前的准备工作
+   */
+  public void preInit() {
+    screenCam=new OrthographicCamera();
+    imageBatch=imageBatchDefault=SharedResources.instance.imageBatch;
+    tvgDrawer=SharedResources.instance.tvgDrawer;
+
+    Gdx.input.setInputProcessor(inputProcessor=new UtilInputProcesser(this));
+    serverCenter=new ServerEntityCenter<>(null);
+    centerSys=new Center<>();
+    center=createEntityCenter();
+    center.list.add(cam=createCamera());
+    centerSys.list.add(cam);
+    center.list.add(centerScreen=createEntityCenter());
+    center.list.add(centerCam=createEntityCenter());
+    center.list.add(centerNeo=new EntityNeoCenter<>(this));
+
+    screenStage=new Stage(screenViewport=new ScalingViewport(Scaling.fit,width,height,screenCam),imageBatch);
+    camStage=new Stage(camViewport=new ScalingViewport(Scaling.fit,width,height,cam.camera),imageBatch);
+    inputProcessor.sub.add.add(screenStage);
+    inputProcessor.sub.add.add(camStage);
+
+    center.list.add(new EntityListener() {
+      @Override
+      public void update() {
+        screenStage.act();
+        camStage.act();
+      }
+
+      @Override
+      public void mousePressed(MouseInfo info) {
+        screenStage.setKeyboardFocus(null);
+        camStage.setKeyboardFocus(null);
+      }
+
+      @Override
+      public void frameResized(int w,int h) {
+        bu=pus*24;
+        screenViewport.setWorldSize(width,height);
+        screenViewport.update(width,height);
+        camViewport.setWorldSize(width,height);
+        camViewport.update(width,height);
+      }
+    });
+
+    centerScreen.list.add(new EntityListener() {
+      @Override
+      public void display() {
+        endRenderer();
+        usedRenderer=screenStage.getBatch();
+        screenStage.draw();
+        endRenderer();
+      }
+    });
+
+    centerCam.list.add(new EntityListener() {
+      @Override
+      public void display() {
+        endRenderer();
+        usedRenderer=camStage.getBatch();
+        camStage.draw();
+        endRenderer();
+      }
+    });
+
+    auto=new AutoEntityManager<>(this);
+    batch3d=new SpriteBatch3D(cam.camera);
+    shapeDrawer3d=new ShapeDrawer(batch3d);
+  }
+
+  /**
+   * 初始化后的工作
+   */
+  public void postInit() {
+    createRenderUtil();
+    createInputUtil();
+    withCam();
+    center.refresh();
+    innerResize(Gdx.graphics.getWidth(),Gdx.graphics.getHeight());
+    if(threadedUpdate) {
+      updateThread=new LoopThread("DoUpdateLoopThread",60) {
+        @Override
+        public void loop() {
+          doUpdate();
+        }
+      };
+      updateThread.start();
+    }
+  }
+
+  /**
+   * 创建相机控制器
+   * 
+   * @return 相机控制器
+   */
+  public abstract CameraController createCamera();
+
+  //---------------------------------------------------------------------------
+
+  @Override
+  public void render(float delta) {
+    frameRate=delta;
+    // textScale(pus);
+    if(!threadedUpdate) doUpdate();
+    doDraw();
+    frameCount++;
+  }
+  public void doUpdate() {
+    mouse.update(this);
+    for(TouchInfo i:touches) i.update(this);
+    inputProcessor.update();
+    center.update();
+    serverCenter.update();
+    update();
+  }
+  public void doDraw() {
+    beginShape();
+    if(background) background(backgroundColor);
+    withCam();
+    serverCenter.display();
+    centerCam.display();
+    centerNeo.displayCam();
+    displayWithCam();
+    camOverlay();
+    withScreen();
+    centerScreen.display();
+    centerNeo.display();
+    display();
+    inputProcessor.display();
+    endShape();
+  }
+  public void camOverlay() {}
+
+  //---------------------------------------------------------------------------
+
+  public void withScreen() {
+    setCamera(screenCam);
+    textScale(pus);
+    strokeWeight(defaultStrokeWeight=u);
+  }
+  public abstract void withCam();
+
+  //---------------------------------------------------------------------------
+
+  public void centerCamAddAll(EntityListener... in) {
+    for(EntityListener i:in) centerCam.add.add(i);
+  }
+  public void centerCamRemoveAll(EntityListener... in) {
+    for(EntityListener i:in) centerCam.remove.add(i);
+  }
+  public void centerScreenAddAll(EntityListener... in) {
+    for(EntityListener i:in) centerScreen.add.add(i);
+  }
+  public void centerScreenRemoveAll(EntityListener... in) {
+    for(EntityListener i:in) centerScreen.remove.add(i);
+  }
+  public void centerNeoAddAll(EntityNeoListener... in) {
+    for(EntityNeoListener i:in) centerNeo.add.add(i);
+  }
+  public void centerNeoRemoveAll(EntityNeoListener... in) {
+    for(EntityNeoListener i:in) centerNeo.remove.add(i);
+  }
+  public <T extends EntityListener> void centerCamAddAll(Iterable<T> in) {
+    for(EntityListener i:in) centerCam.add.add(i);
+  }
+  public <T extends EntityListener> void centerCamRemoveAll(Iterable<T> in) {
+    for(EntityListener i:in) centerCam.remove.add(i);
+  }
+  public <T extends EntityListener> void centerScreenAddAll(Iterable<T> in) {
+    for(EntityListener i:in) centerScreen.add.add(i);
+  }
+  public <T extends EntityListener> void centerScreenRemoveAll(Iterable<T> in) {
+    for(EntityListener i:in) centerScreen.remove.add(i);
+  }
+  public <T extends EntityNeoListener> void centerNeoAddAll(Iterable<T> in) {
+    for(EntityNeoListener i:in) centerNeo.add.add(i);
+  }
+  public <T extends EntityNeoListener> void centerNeoRemoveAll(Iterable<T> in) {
+    for(EntityNeoListener i:in) centerNeo.remove.add(i);
+  }
+
+  //---------------------------------------------------------------------------
+
+  public void addScreenTextFields(TextField... in) {
+    for(TextField e:in) screenStage.addActor(e);
+  }
+  public void addCamTextFields(TextField... in) {
+    for(TextField e:in) camStage.addActor(e);
+  }
+  public void removeScreenTextFields(TextField... in) {
+    Group root=screenStage.getRoot();
+    for(TextField e:in) root.removeActor(e);
+  }
+  public void removeCamTextFields(TextField... in) {
+    Group root=camStage.getRoot();
+    for(TextField e:in) root.removeActor(e);
+  }
+
+  public void addScreenTextFields(Array<TextField> in) {
+    for(TextField e:in) screenStage.addActor(e);
+  }
+  public void addCamTextFields(Array<TextField> in) {
+    for(TextField e:in) camStage.addActor(e);
+  }
+  public void removeScreenTextFields(Array<TextField> in) {
+    Group root=screenStage.getRoot();
+    for(TextField e:in) root.removeActor(e);
+  }
+  public void removeCamTextFields(Array<TextField> in) {
+    Group root=camStage.getRoot();
+    for(TextField e:in) root.removeActor(e);
+  }
+
+  //---------------------------------------------------------------------------
+
+  public void drawCursor() {
+    drawCursor(0,255);
+  }
+  public void drawCursor(int a,int b) {
+    beginBlend();
+    // final int a=0,b=255;
+    fill(mouse.left?a:b,mouse.center?a:b,mouse.right?a:b,127);
+    rect(mouse.x-4,mouse.y-0.5f,8,1);
+    rect(mouse.x-0.5f,mouse.y-4,1,8);
+    endBlend();
+  }
+
+  //---------------------------------------------------------------------------
+
+  public static String[] loadStrings(FileHandle file) {
+    return file.readString("UTF-8").replace("\r","").split("\n");
+  }
+  public static String[] match(String str,String regexp) {
+    Pattern p=matchPattern(regexp);
+    Matcher m=p.matcher(str);
+    if(m.find()) {
+      int count=m.groupCount()+1;
+      String[] groups=new String[count];
+      for(int i=0;i<count;i++) {
+        groups[i]=m.group(i);
+      }
+      return groups;
+    }
+    return null;
+  }
+  public static LinkedHashMap<String,Pattern> matchPatterns;
+  public static Pattern matchPattern(String regexp) {
+    Pattern p=null;
+    if(matchPatterns==null) {
+      matchPatterns=new LinkedHashMap<>(16,0.75f,true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String,Pattern> eldest) {
+          // Limit the number of match patterns at 10 most recently used
+          return size()==10;
+        }
+      };
+    }else {
+      p=matchPatterns.get(regexp);
+    }
+    if(p==null) {
+      p=Pattern.compile(regexp,Pattern.MULTILINE|Pattern.DOTALL);
+      matchPatterns.put(regexp,p);
+    }
+    return p;
+  }
+
+  //---------------------------------------------------------------------------
+
+  public void refreshAllCenter() {
+    center.refresh();
+    centerCam.refresh();
+    centerScreen.refresh();
+    centerNeo.refresh();
+    serverCenter.refresh();
+
+    // centerSys.refresh();
+  }
+  public void centerAddContainer(ScreenContentContainer in) {
+    center.add.add(in.center);
+    centerCam.add.add(in.centerCam);
+    centerScreen.add.add(in.centerScreen);
+    centerNeo.add.add(in.centerNeo);
+    serverCenter.add.add(in.serverCenter);
+
+    // for(var e:in.screenStage.getChildren()) screenStage.addActor(e);
+    // for(var e:in.camStage.getChildren()) camStage.addActor(e);
+
+    // for(var e:in.screenStage.list) screenStage.addActor(e);
+    // for(var e:in.camStage.list) camStage.addActor(e);
+
+    // screenStage.addActor(in.screenStage);
+    // camStage.addActor(in.camStage);
+  }
+  public void centerRemoveContainer(ScreenContentContainer in) {
+    center.remove.add(in.center);
+    centerCam.remove.add(in.centerCam);
+    centerScreen.remove.add(in.centerScreen);
+    centerNeo.remove.add(in.centerNeo);
+    serverCenter.remove.add(in.serverCenter);
+
+    // Group tr1=screenStage.getRoot();
+    // for(var e:in.screenStage.getChildren()) tr1.removeActor(e);
+    // Group tr2=camStage.getRoot();
+    // for(var e:in.camStage.getChildren()) tr2.removeActor(e);
+
+    // Group tr1=screenStage.getRoot();
+    // tr1.removeActor(in.screenStage);
+    // // for(var e:in.screenStage.list) tr1.removeActor(e);
+    // Group tr2=camStage.getRoot();
+    // tr2.removeActor(in.camStage);
+    // // for(var e:in.camStage.list) tr2.removeActor(e);
+  }
+  public void copyToContainer(ScreenContentContainer in) {
+    in.center=center;
+    in.centerCam=centerCam;
+    in.centerScreen=centerScreen;
+    in.centerNeo=centerNeo;
+    in.serverCenter=serverCenter;
+
+    // in.screenStage=screenStage.getRoot();
+    // in.camStage=camStage.getRoot();
+
+  }
+  public void copyFromContainer(ScreenContentContainer in) {
+    center=in.center;
+    centerCam=in.centerCam;
+    centerScreen=in.centerScreen;
+    centerNeo=in.centerNeo;
+    serverCenter=in.serverCenter;
+
+    // screenStage.setRoot(in.screenStage);
+    // camStage.setRoot(in.camStage);
+
+  }
+  public EntityCenterAbstract<UtilScreen,EntityListener,?> createEntityCenter() {
+    return new EntityCenterConcurrent<>(this);
+  }
+}

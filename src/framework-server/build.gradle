@@ -1,0 +1,7 @@
+// server-framework：pama1234 服务端/数学基础框架（源码纳入构建，替代 jitpack 残缺二进制）
+dependencies {
+  api "javax.vecmath:vecmath:$vecmathVersion"
+  api "com.esotericsoftware:kryo:$kryoVersion"
+  api "org.yaml:snakeyaml:$snakeYamlVersion"
+  api "io.netty:netty-all:$nettyVersion"
+}
