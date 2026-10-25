@@ -56,7 +56,7 @@ public abstract class UtilScreenRenderShape extends UtilScreenRenderImage{
     }
     if(stroke) {
       shapeDrawer.setColor(strokeColor);
-      shapeDrawer.circle(x,y,size,JoinType.BEVEL);
+      shapeDrawer.circle(x,y,size);
     }
   }
   public static int circleSeg(float s) {
@@ -66,11 +66,11 @@ public abstract class UtilScreenRenderShape extends UtilScreenRenderImage{
     renderer(shapeDrawer.getBatch());
     if(fill) {
       shapeDrawer.setColor(fillColor);
-      shapeDrawer.filledCircleWithSeg(x,y,size,seg);
+      shapeDrawer.filledCircle(x,y,size);
     }
     if(stroke) {
       shapeDrawer.setColor(strokeColor);
-      shapeDrawer.circleWithSeg(x,y,size,JoinType.BEVEL,seg);
+      shapeDrawer.circle(x,y,size);
     }
   }
   public void circle(float x,float y,float z,float s) {
@@ -185,9 +185,7 @@ public abstract class UtilScreenRenderShape extends UtilScreenRenderImage{
     }
     if(stroke) {
       shapeDrawer.setColor(strokeColor);
-      shapeDrawer.polygon(
-        array,0,size*2,
-        shapeDrawer.defaultLineWidth,shapeDrawer.isJoinNecessary(shapeDrawer.defaultLineWidth)?JoinType.POINTY:JoinType.NONE);
+      shapeDrawer.polygon(array,0,size*2);
     }
   }
   public void quad(float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4) {
@@ -222,7 +220,7 @@ public abstract class UtilScreenRenderShape extends UtilScreenRenderImage{
     if(stroke) {
       renderer(shapeDrawer.getBatch());
       shapeDrawer.setColor(strokeColor);
-      shapeDrawer.arc(x,y,radius,UtilMath.rad(start),UtilMath.rad(degrees),JoinType.POINTY);
+      shapeDrawer.arc(x,y,radius,UtilMath.rad(start),UtilMath.rad(degrees));
       //      renderer(rStroke);
       //      rStroke.arcNoBorder(x,y,radius,start,degrees,UtilMath.max(1,(int)(6*(float)Math.cbrt(radius)*(degrees/360))));
     }
@@ -240,10 +238,10 @@ public abstract class UtilScreenRenderShape extends UtilScreenRenderImage{
       shapeDrawer.setColor(strokeColor);
       shapeDrawer.line(x1,y1,x2,y2);
       if(capType==CapType.ROUND) {
-        shapeDrawer.filledCircle(x1,y1,shapeDrawer.defaultLineWidth/2f);
-        shapeDrawer.filledCircle(x2,y2,shapeDrawer.defaultLineWidth/2f);
+        shapeDrawer.filledCircle(x1,y1,shapeDrawer.getDefaultLineWidth()/2f);
+        shapeDrawer.filledCircle(x2,y2,shapeDrawer.getDefaultLineWidth()/2f);
       }else if(capType==CapType.ROUND_LEFT) {
-        shapeDrawer.filledCircle(x1,y1,shapeDrawer.defaultLineWidth/2f);
+        shapeDrawer.filledCircle(x1,y1,shapeDrawer.getDefaultLineWidth()/2f);
       }
     }
   }

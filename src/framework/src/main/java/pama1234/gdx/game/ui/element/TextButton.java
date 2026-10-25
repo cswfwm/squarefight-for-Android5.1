@@ -169,6 +169,16 @@ public class TextButton<T extends UtilScreen>extends Button<T>{
     return this;
   }
 
+  public TextButton<T> text(String text) {
+    this.text=text;
+    return this;
+  }
+
+  public TextButton<T> textOffset(boolean textOffset) {
+    this.textOffset=textOffset;
+    return this;
+  }
+
   public TextButton<T> mouseLimit(boolean mouseLimit) {
     this.mouseLimit=mouseLimit;
     return this;
