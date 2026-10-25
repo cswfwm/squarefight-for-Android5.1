@@ -1,7 +1,10 @@
 // game0003-server：几何决斗服务端逻辑（作为库供 core/android 使用，不打 fat jar）
 dependencies {
   api project(':framework-server')
-  api "$pama1234RepoLocation:framework-neat:$pama1234PublishVersion"
+  api("$pama1234RepoLocation:framework-neat:$pama1234PublishVersion") {
+    // 排除传递依赖的 jitpack server-framework，避免与本地 framework-server 的同名类冲突
+    exclude group: "$pama1234RepoLocation", module: 'server-framework'
+  }
   api "javax.vecmath:vecmath:$vecmathVersion"
   api "com.esotericsoftware:kryo:$kryoVersion"
 }
